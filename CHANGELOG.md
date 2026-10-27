@@ -4,6 +4,36 @@ All notable changes to the memory engine are documented here. The client
 (`v<x.y.z>`) and server (`server/v<x.y.z>`) release independently but are
 versioned in lockstep for coordinated breaking changes.
 
+## 0.9.3 (server)
+
+Server `server/v0.9.3` · Client unchanged (`v0.9.1`).
+
+### Changed
+- **better-auth and `@better-auth/oauth-provider` 1.6 → 1.7.14.** Clears the
+  open advisories against 1.6 (none of which were reachable in this
+  configuration except the device-approval one, already mitigated in 0.9.2).
+  Access tokens the provider marks `revoked` (session end, back-channel
+  logout) no longer authenticate before they expire. The OAuth callback now
+  reports hook failures as `error=<code>&error_description=<message>`; the
+  sign-in page shows the description.
+
+### Fixed
+- The `/device` and invite landing pages show the sign-in card to a signed-out
+  visitor instead of "Couldn't reach Memory Engine".
+
+### Compatibility and database
+- Auth schema migration 008 (`AUTH_SCHEMA_VERSION` 0.0.3), additive: new
+  nullable columns on the jwks and OAuth tables, three new unused OAuth
+  tables, and the seeded `me-cli` client updated to
+  `token_endpoint_auth_method = 'none'` / `application_type = 'native'`
+  (how 1.7 recognises a public native client). Runs on server start.
+- Existing sessions, CLI tokens, refresh tokens, and API keys keep working.
+  A social sign-in or device code in flight during the rollout fails once
+  and is retried.
+- Rolling back to a pre-1.7 image requires resetting the auth schema version
+  stamp first; see `design/authentication.md`, "Rolling back".
+- No client release and no compatibility-minimum change.
+
 ## 0.9.1 (client) / 0.9.2 (server)
 
 Server `server/v0.9.2` · Client `v0.9.1`.
