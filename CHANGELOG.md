@@ -4,6 +4,56 @@ All notable changes to the memory engine are documented here. The client
 (`v<x.y.z>`) and server (`server/v<x.y.z>`) release independently but are
 versioned in lockstep for coordinated breaking changes.
 
+## 0.9.1 (client) / 0.9.2 (server)
+
+Server `server/v0.9.2` · Client `v0.9.1`.
+
+A security release following an internal audit. No wire-protocol or schema
+changes; both sides remain compatible with 0.9.0.
+
+### Fixed
+- **`me serve` only proxies requests from its own origin.** The local proxy
+  injects the user's session token into upstream calls. It now requires the
+  `Host` header to name the bound listener, a browser `Origin` /
+  `Sec-Fetch-Site` to be same-origin, and RPC bodies to be `application/json`,
+  so a web page in another tab (or a DNS-rebinding host) can no longer send
+  RPCs as the user. `--host` on a non-loopback address prints a warning.
+- **MCP `me_memory_export` / `me_memory_import` stay inside the working
+  directory.** File paths are resolved under `process.cwd()` after following
+  symlinks, dotfile and dot-directory components are refused, and export will
+  not replace an existing file unless `overwrite: true`. Export is now
+  annotated `destructiveHint: true`.
+- **Restricted API keys cannot manage the space.** A key minted with
+  `--allow` (including `--space-admin`) now gets `FORBIDDEN` on
+  `group.*` mutations, `group.listMembers`, `grant.*`,
+  `principal.add` / `remove`, `invite.*`, and `access.effective` for any
+  principal other than itself. Previously a restricted key held by a group
+  admin could add members to that group and so widen their grants past the
+  key's declared ceiling. Read-only lookups (`principal.list/resolve/lookup`,
+  `group.list/listForMember`, `space.listMembers`) are unaffected.
+- **Device login requires typing the code.** The `/device` page no longer
+  reads `?user_code=` from the URL or pre-fills the code, and the approve
+  screen warns that approving a code someone else sent you hands them your
+  account. `me login --device` prints the bare URL and the code instead of a
+  pre-filled link.
+- `/ready` returns `checks.db: "error"` instead of the database driver's
+  message; the detail goes to the `Readiness check failed` log record.
+
+### Changed
+- CLI: `@modelcontextprotocol/sdk` 1.29 → 1.32 (clears three advisories).
+- Build: `bun install` is frozen-lockfile everywhere via `bunfig.toml`.
+  Intentional dependency changes use `./bun install --config=/dev/null`.
+- CI makes no external API calls; the e2e suite uses a local fake embedding
+  server, and the live OpenAI suite is opt-in (`RUN_OPENAI_INTEGRATION=1`).
+  Workflows run with a read-only `GITHUB_TOKEN`.
+
+### Compatibility and database
+- No compatibility-minimum changes and no schema migrations.
+- better-auth remains on 1.6.20. The open advisories against it (magic link,
+  OAuth Proxy, DB-backed rate limiting) do not apply to this configuration;
+  the device-flow one is mitigated by the typed-code change above. The 1.7
+  upgrade is planned separately.
+
 ## 0.9.1
 
 Server `server/v0.9.1` · Client unchanged (`v0.9.0`).
